@@ -1,0 +1,64 @@
+.design-editor {
+  min-height: 100vh;
+}
+
+.design-editor__header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #ddd;
+}
+
+.design-editor__title {
+  margin: 0;
+}
+.sneaker-canvas svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.design-editor__workspace {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  min-height: calc(100vh - 90px);
+}
+
+.design-editor__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.design-editor__panel {
+  padding: 32px;
+  border-left: 1px solid #ddd;
+}
+
+.design-editor__panel-title {
+  margin-top: 0;
+}
+
+.design-editor__component {
+  margin-bottom: 24px;
+}
+
+.design-editor__empty {
+  color: #777;
+}
+
+.design-editor__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+.design-editor__actions button {
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.design-editor__actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

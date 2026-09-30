@@ -1,0 +1,14 @@
+svg[data-selected-component="upper"] #upper,
+svg[data-selected-component="heel"] #heel,
+svg[data-selected-component="tongue"] #tongue,
+svg[data-selected-component="midsole"] #midsole,
+svg[data-selected-component="outsole"] #outsole,
+svg[data-selected-component="toe"] #toe,
+svg[data-selected-component="logo"] #logo,
+svg[data-selected-component="laces"] #lace-1,
+svg[data-selected-component="laces"] #lace-2,
+svg[data-selected-component="laces"] #lace-3,
+svg[data-selected-component="laces"] #lace-4 {
+  filter: brightness(1.15);
+  opacity: 0.8;
+}

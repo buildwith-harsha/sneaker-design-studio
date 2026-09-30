@@ -1,0 +1,127 @@
+<svg
+    viewBox="0 0 600 400"
+    xmlns="http://www.w3.org/2000/svg"
+>
+
+    <!-- VERY THICK CHUNKY OUTSOLE -->
+    <path
+        id="outsole"
+        d="M35 305
+           C80 325 145 340 220 345
+           C330 352 450 335 555 295
+           L575 320
+           C575 350 545 370 500 378
+           C390 395 210 392 90 365
+           C45 355 25 335 35 305Z"
+        fill="var(--outsole-color)"
+    />
+
+    <!-- CHUNKY MIDSOLE -->
+    <path
+        id="midsole"
+        d="M40 275
+           C110 305 200 320 300 320
+           C405 320 490 295 555 265
+           L565 310
+           C485 345 390 355 290 352
+           C185 350 90 335 40 310Z"
+        fill="var(--midsole-color)"
+    />
+
+    <!-- BIG CASUAL UPPER -->
+    <path
+        id="upper"
+        d="M45 270
+           C90 255 130 230 165 195
+           C195 165 215 125 255 110
+           C295 95 335 110 365 140
+           C395 170 420 205 450 225
+           C480 245 520 250 550 255
+           C570 260 575 275 555 285
+           C465 315 370 325 270 322
+           C170 320 85 300 45 270Z"
+        fill="var(--upper-color)"
+    />
+
+    <!-- LARGE HEEL -->
+    <path
+        id="heel"
+        d="M45 270
+           C90 255 130 230 165 195
+           L205 135
+           C220 115 245 105 265 105
+           L250 190
+           C240 235 245 280 255 322
+           C170 315 90 295 45 270Z"
+        fill="var(--heel-color)"
+    />
+
+    <!-- VERY BROAD TOE -->
+    <path
+        id="toe"
+        d="M365 140
+           C395 170 420 205 450 225
+           C480 245 520 250 550 255
+           C570 260 575 275 555 285
+           C500 305 440 312 380 316
+           C370 260 365 200 365 140Z"
+        fill="var(--toe-color)"
+    />
+
+    <!-- BIG TONGUE -->
+    <path
+        id="tongue"
+        d="M215 205
+           C220 165 235 125 265 108
+           C295 95 325 110 345 140
+           L370 210
+           L290 245Z"
+        fill="var(--tongue-color)"
+    />
+
+    <!-- LACES -->
+    <path
+        id="laces"
+        d="M225 180
+           C260 195 305 200 340 190"
+        stroke="var(--laces-color)"
+        stroke-width="10"
+        fill="none"
+    />
+
+    <path
+        id="lace-1"
+        d="M220 160 L330 192"
+        stroke="var(--laces-color)"
+        stroke-width="9"
+    />
+
+    <path
+        id="lace-2"
+        d="M218 180 L335 212"
+        stroke="var(--laces-color)"
+        stroke-width="9"
+    />
+
+    <path
+        id="lace-3"
+        d="M220 200 L340 232"
+        stroke="var(--laces-color)"
+        stroke-width="9"
+    />
+
+    <path
+        id="lace-4"
+        d="M225 220 L338 250"
+        stroke="var(--laces-color)"
+        stroke-width="9"
+    />
+
+    <!-- LOGO -->
+    <path
+        id="logo"
+        d="M350 235 L405 258 L380 270 L335 245Z"
+        fill="var(--logo-color)"
+    />
+
+</svg>

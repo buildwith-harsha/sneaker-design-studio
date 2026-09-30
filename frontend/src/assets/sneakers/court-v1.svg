@@ -1,0 +1,126 @@
+<svg
+    viewBox="0 0 600 400"
+    xmlns="http://www.w3.org/2000/svg"
+>
+
+    <!-- FLAT WIDE OUTSOLE -->
+    <path
+        id="outsole"
+        d="M45 315
+           C120 340 220 350 330 348
+           C430 346 510 330 560 305
+           L565 340
+           C510 365 420 375 310 377
+           C190 378 90 365 50 345
+           C35 338 35 325 45 315Z"
+        fill="var(--outsole-color)"
+    />
+
+    <!-- FLAT MIDSOLE -->
+    <path
+        id="midsole"
+        d="M45 290
+           C130 315 230 320 330 318
+           C430 315 505 300 555 275
+           L560 310
+           C500 335 415 345 315 347
+           C205 348 100 335 48 315Z"
+        fill="var(--midsole-color)"
+    />
+
+    <!-- WIDE LOW UPPER -->
+    <path
+        id="upper"
+        d="M50 285
+           C105 270 150 250 190 220
+           C225 195 240 165 270 150
+           C300 135 335 140 360 160
+           C390 185 410 220 445 240
+           C475 258 515 265 545 270
+           C560 275 560 285 545 290
+           C440 315 330 320 220 315
+           C140 312 85 302 50 285Z"
+        fill="var(--upper-color)"
+    />
+
+    <!-- LOW HEEL -->
+    <path
+        id="heel"
+        d="M50 285
+           C105 270 150 250 190 220
+           L220 175
+           C235 155 255 145 275 142
+           L260 205
+           C250 245 250 280 260 318
+           C175 315 100 302 50 285Z"
+        fill="var(--heel-color)"
+    />
+
+    <!-- BROAD TOE -->
+    <path
+        id="toe"
+        d="M360 160
+           C390 185 410 220 445 240
+           C475 258 515 265 545 270
+           C560 275 560 285 545 290
+           C485 305 420 310 365 312
+           C360 265 360 210 360 160Z"
+        fill="var(--toe-color)"
+    />
+
+    <!-- TONGUE -->
+    <path
+        id="tongue"
+        d="M225 205
+           C230 175 245 150 270 140
+           C295 132 320 145 335 165
+           L350 215
+           L285 235Z"
+        fill="var(--tongue-color)"
+    />
+
+    <!-- LACES -->
+    <path
+        id="laces"
+        d="M235 185 C265 198 300 202 325 195"
+        stroke="var(--laces-color)"
+        stroke-width="8"
+        fill="none"
+    />
+
+    <path
+        id="lace-1"
+        d="M230 170 L315 195"
+        stroke="var(--laces-color)"
+        stroke-width="7"
+    />
+
+    <path
+        id="lace-2"
+        d="M228 187 L320 210"
+        stroke="var(--laces-color)"
+        stroke-width="7"
+    />
+
+    <path
+        id="lace-3"
+        d="M228 204 L322 225"
+        stroke="var(--laces-color)"
+        stroke-width="7"
+    />
+
+    <path
+        id="lace-4"
+        d="M230 221 L320 240"
+        stroke="var(--laces-color)"
+        stroke-width="7"
+    />
+
+    <!-- LOGO -->
+    <path
+        id="logo"
+        d="M350 235 L390 252 L370 263 L340 243Z"
+        fill="var(--logo-color)"
+    />
+
+</svg>
