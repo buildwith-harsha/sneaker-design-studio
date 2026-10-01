@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { SneakerModel } from "../data/sneakerModels";
+import { type SneakerModel, normalizeSneakerModel } from "../data/sneakerModels";
 import type { SneakerMaterial } from "../data/materials";
 
 export type SneakerComponent =
@@ -21,26 +21,26 @@ interface DesignState {
 }
 
 const initialState: DesignState = {
-  model: "runner-v1",
+  model: "air-jordan",
 
   components: {
-    upper: "#FF0000",
-    heel: "#E5E5E5",
-    tongue: "#D9D9D9",
+    upper: "#B22222",
+    heel: "#B22222",
+    tongue: "#FFFFFF",
     midsole: "#FFFFFF",
-    outsole: "#CFCFCF",
-    laces: "#171717",
-    toe: "#EEEEEE",
-    logo: "#171717",
+    outsole: "#B22222",
+    laces: "#111111",
+    toe: "#FFFFFF",
+    logo: "#111111",
   },
   materials: {
-    upper: "mesh",
-    heel: "mesh",
+    upper: "leather",
+    heel: "leather",
     tongue: "mesh",
     midsole: "rubber",
     outsole: "rubber",
-    laces: "mesh",
-    toe: "mesh",
+    laces: "knit",
+    toe: "leather",
     logo: "leather",
   },
   past: [],
@@ -74,7 +74,7 @@ const designSlice = createSlice({
         materials: Record<SneakerComponent, SneakerMaterial>;
       }>,
     ) => {
-      state.model = action.payload.model;
+      state.model = normalizeSneakerModel(action.payload.model);
 
       state.components = {
         ...action.payload.components,

@@ -1,22 +1,33 @@
-import RunnerSvg from "../assets/sneakers/runner-v1.svg?react";
-import CourtSvg from "../assets/sneakers/court-v1.svg?react";
-import LifestyleSvg from "../assets/sneakers/lifestyle-v1.svg?react";
+export interface SneakerModelConfig {
+  name: string;
+  is3D: boolean;
+  modelUrl: string;
+}
 
 export const sneakerModels = {
-  "runner-v1": {
-    name: "Runner",
-    component: RunnerSvg,
+  "air-jordan": {
+    name: "Air Jordan 1 (3D)",
+    is3D: true,
+    modelUrl: "/models/air-jordan.glb",
   },
-
-  "court-v1": {
-    name: "Court",
-    component: CourtSvg,
+  "runner": {
+    name: "Nike Runner (3D)",
+    is3D: true,
+    modelUrl: "/models/runner.glb",
   },
-
-  "lifestyle-v1": {
-    name: "Lifestyle",
-    component: LifestyleSvg,
+  "court": {
+    name: "Nike Court (3D)",
+    is3D: true,
+    modelUrl: "/models/court.glb",
   },
 } as const;
 
 export type SneakerModel = keyof typeof sneakerModels;
+
+export const normalizeSneakerModel = (model: string): SneakerModel => {
+  if (model === "runner-v1" || model === "runner") return "runner";
+  if (model === "court-v1" || model === "lifestyle-v1" || model === "court")
+    return "court";
+  if (model === "air-jordan") return "air-jordan";
+  return "air-jordan";
+};
