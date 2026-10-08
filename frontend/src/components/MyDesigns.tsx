@@ -56,7 +56,6 @@ function MyDesigns() {
   }, []);
 
   const handleDelete = async (id: number) => {
-    console.log("DELETE ID:", id);
     try {
       /*
        * 1. Delete from MySQL

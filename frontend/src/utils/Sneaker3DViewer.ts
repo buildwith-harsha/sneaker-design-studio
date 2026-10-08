@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+
 import type { SneakerComponent } from "../store/DesignSlice";
 import type { SneakerMaterial } from "../data/materials";
 
@@ -14,16 +15,34 @@ export interface Sneaker3DViewerOptions {
 
 const MATERIAL_PRESETS: Record<
   SneakerMaterial,
-  { roughness: number; metalness: number; bumpScale?: number }
+  {
+    roughness: number;
+    metalness: number;
+  }
 > = {
-  leather: { roughness: 0.38, metalness: 0.08 },
-  suede: { roughness: 0.92, metalness: 0.02 },
-  rubber: { roughness: 0.65, metalness: 0.0 },
-  mesh: { roughness: 0.82, metalness: 0.04 },
-  knit: { roughness: 0.88, metalness: 0.0 },
+  leather: {
+    roughness: 0.38,
+    metalness: 0.08,
+  },
+  suede: {
+    roughness: 0.92,
+    metalness: 0.02,
+  },
+  rubber: {
+    roughness: 0.65,
+    metalness: 0,
+  },
+  mesh: {
+    roughness: 0.82,
+    metalness: 0.04,
+  },
+  knit: {
+    roughness: 0.88,
+    metalness: 0,
+  },
 };
 
-const VALID_COMPONENTS: Set<string> = new Set([
+const VALID_COMPONENTS: SneakerComponent[] = [
   "upper",
   "heel",
   "tongue",
@@ -32,23 +51,28 @@ const VALID_COMPONENTS: Set<string> = new Set([
   "laces",
   "toe",
   "logo",
-]);
+];
 
 export class Sneaker3DViewer {
   private container: HTMLElement;
+
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private controls: OrbitControls;
+
   private modelGroup: THREE.Group;
+
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
-  private isPointerDown = false;
-  private pointerDownPos = { x: 0, y: 0 };
 
-  private componentMeshes: Map<SneakerComponent, THREE.Mesh> = new Map();
-  private originalMaterials: Map<SneakerComponent, THREE.MeshStandardMaterial> =
-    new Map();
+  private isPointerDown = false;
+  private pointerDownPos = {
+    x: 0,
+    y: 0,
+  };
+
+  private componentMeshes: Map<SneakerComponent, THREE.Mesh[]> = new Map();
 
   private selectedComponent: SneakerComponent | null = null;
   private hoveredComponent: SneakerComponent | null = null;
@@ -57,18 +81,24 @@ export class Sneaker3DViewer {
   private materials: Record<SneakerComponent, SneakerMaterial>;
 
   private onSelectComponent?: (component: SneakerComponent) => void;
+
   private onHoverComponent?: (component: SneakerComponent | null) => void;
 
   private animationFrameId: number | null = null;
+
   private isDisposed = false;
+
   private resizeObserver: ResizeObserver | null = null;
 
   private modelUrl: string;
 
   constructor(container: HTMLElement, options: Sneaker3DViewerOptions = {}) {
     this.container = container;
+
     this.modelUrl = options.modelUrl || "/models/air-jordan.glb";
+
     this.onSelectComponent = options.onSelectComponent;
+
     this.onHoverComponent = options.onHoverComponent;
 
     this.components = options.initialComponents ?? {
@@ -93,128 +123,211 @@ export class Sneaker3DViewer {
       logo: "leather",
     };
 
-    // 1. Scene
+    /*
+     * ----------------------------------------
+     * 1. SCENE
+     * ----------------------------------------
+     */
+
     this.scene = new THREE.Scene();
+
     this.scene.background = new THREE.Color("#f8fafc");
 
-    // 2. Camera
-    const width = container.clientWidth || 600;
-    const height = container.clientHeight || 450;
-    this.camera = new THREE.PerspectiveCamera(40, width / height, 0.05, 20);
-    this.camera.position.set(0.3, 0.16, 0.28);
+    /*
+     * ----------------------------------------
+     * 2. CAMERA
+     * ----------------------------------------
+     */
 
-    // 3. Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const width = container.clientWidth || 600;
+
+    const height = container.clientHeight || 450;
+
+    this.camera = new THREE.PerspectiveCamera(35, width / height, 0.01, 100);
+
+    this.camera.position.set(2, 1.2, 3);
+
+    /*
+     * ----------------------------------------
+     * 3. RENDERER
+     * ----------------------------------------
+     */
+
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+    });
+
     this.renderer.setSize(width, height);
+
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    /*
+     * Important for correct GLB colors.
+     */
+
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+
+    this.renderer.toneMappingExposure = 1.15;
+
     this.renderer.shadowMap.enabled = true;
+
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+
     this.container.appendChild(this.renderer.domElement);
 
-    // 4. OrbitControls
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.06;
-    this.controls.minDistance = 0.18;
-    this.controls.maxDistance = 0.85;
-    this.controls.maxPolarAngle = Math.PI / 2 + 0.05;
-    this.controls.target.set(0, 0.055, 0);
-    this.controls.update();
+    /*
+     * ----------------------------------------
+     * 4. ORBIT CONTROLS
+     * ----------------------------------------
+     */
 
-    // 5. Lighting
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+
+    this.controls.enableDamping = true;
+
+    this.controls.dampingFactor = 0.06;
+
+    this.controls.enablePan = false;
+
+    this.controls.minDistance = 0.2;
+
+    this.controls.maxDistance = 20;
+
+    this.controls.maxPolarAngle = Math.PI / 2 + 0.15;
+
+    /*
+     * ----------------------------------------
+     * 5. LIGHTING
+     * ----------------------------------------
+     */
+
     this.setupLighting();
 
-    // 6. Ground Shadow
+    /*
+     * ----------------------------------------
+     * 6. GROUND
+     * ----------------------------------------
+     */
+
     this.setupGround();
 
-    // 7. Raycasting & Events
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2(-1000, -1000);
+    /*
+     * ----------------------------------------
+     * 7. MODEL GROUP
+     * ----------------------------------------
+     */
+
     this.modelGroup = new THREE.Group();
+
     this.scene.add(this.modelGroup);
+
+    /*
+     * ----------------------------------------
+     * 8. RAYCASTING
+     * ----------------------------------------
+     */
+
+    this.raycaster = new THREE.Raycaster();
+
+    this.mouse = new THREE.Vector2(-1000, -1000);
+
+    /*
+     * ----------------------------------------
+     * 9. EVENTS
+     * ----------------------------------------
+     */
 
     this.bindEvents();
 
-    // 8. Load Model
+    /*
+     * ----------------------------------------
+     * 10. LOAD MODEL
+     * ----------------------------------------
+     */
+
     this.loadModel();
 
-    // 9. Start Loop
+    /*
+     * ----------------------------------------
+     * 11. RENDER LOOP
+     * ----------------------------------------
+     */
+
     this.animate();
   }
 
+  /*
+   * ========================================
+   * LIGHTING
+   * ========================================
+   */
+
   private setupLighting(): void {
-    // Ambient Light
-    const ambient = new THREE.AmbientLight(0xffffff, 1.4);
+    const ambient = new THREE.AmbientLight(0xffffff, 2.0);
+
     this.scene.add(ambient);
 
-    // Key Light
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    keyLight.position.set(1.5, 3.0, 2.0);
+    const hemisphere = new THREE.HemisphereLight(0xffffff, 0x64748b, 1.8);
+
+    this.scene.add(hemisphere);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.0);
+
+    keyLight.position.set(4, 6, 5);
+
     keyLight.castShadow = true;
+
     keyLight.shadow.mapSize.width = 2048;
+
     keyLight.shadow.mapSize.height = 2048;
-    keyLight.shadow.camera.near = 0.5;
-    keyLight.shadow.camera.far = 10;
-    keyLight.shadow.camera.left = -0.4;
-    keyLight.shadow.camera.right = 0.4;
-    keyLight.shadow.camera.top = 0.4;
-    keyLight.shadow.camera.bottom = -0.4;
-    keyLight.shadow.bias = -0.0005;
+
     this.scene.add(keyLight);
 
-    // Fill Light (Cool)
-    const fillLight = new THREE.DirectionalLight(0xd8e6ff, 1.2);
-    fillLight.position.set(-2.0, 1.5, -1.0);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.8);
+
+    fillLight.position.set(-4, 3, 2);
+
     this.scene.add(fillLight);
 
-    // Back / Rim Light
-    const rimLight = new THREE.DirectionalLight(0xfff1e0, 1.6);
-    rimLight.position.set(-0.5, 2.2, -2.5);
-    this.scene.add(rimLight);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 2.0);
 
-    // Under / Bounce Light
-    const bounceLight = new THREE.DirectionalLight(0xffffff, 0.45);
-    bounceLight.position.set(0, -1.5, 0);
-    this.scene.add(bounceLight);
+    rimLight.position.set(-2, 4, -5);
+
+    this.scene.add(rimLight);
   }
+
+  /*
+   * ========================================
+   * GROUND
+   * ========================================
+   */
 
   private setupGround(): void {
-    // Soft shadow receiving floor plane
-    const shadowPlaneGeo = new THREE.PlaneGeometry(3, 3);
-    const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.18 });
-    const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
-    shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -0.001;
-    shadowPlane.receiveShadow = true;
-    this.scene.add(shadowPlane);
+    const geometry = new THREE.CircleGeometry(2, 64);
 
-    // Subtle radial gradient pedestal shadow
-    const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      const gradient = ctx.createRadialGradient(128, 128, 15, 128, 128, 120);
-      gradient.addColorStop(0, "rgba(0,0,0,0.35)");
-      gradient.addColorStop(0.5, "rgba(0,0,0,0.12)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 256, 256);
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-    const pedestalGeo = new THREE.PlaneGeometry(0.36, 0.22);
-    const pedestalMat = new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      depthWrite: false,
+    const material = new THREE.ShadowMaterial({
+      opacity: 0.16,
     });
-    const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
-    pedestal.rotation.x = -Math.PI / 2;
-    pedestal.position.y = 0.0001;
-    this.scene.add(pedestal);
+
+    const ground = new THREE.Mesh(geometry, material);
+
+    ground.rotation.x = -Math.PI / 2;
+
+    ground.position.y = -0.01;
+
+    ground.receiveShadow = true;
+
+    this.scene.add(ground);
   }
+
+  /*
+   * ========================================
+   * LOAD GLB
+   * ========================================
+   */
 
   public loadModel(modelUrl?: string): void {
     if (modelUrl) {
@@ -222,147 +335,425 @@ export class Sneaker3DViewer {
     }
 
     const loader = new GLTFLoader();
+
     loader.load(
       this.modelUrl,
-      (gltf) => {
-        if (this.isDisposed) return;
 
-        this.modelGroup.clear();
-        this.componentMeshes.clear();
-        this.originalMaterials.clear();
+      (gltf) => {
+        if (this.isDisposed) {
+          return;
+        }
+
+        /*
+         * Remove previous model.
+         */
+
+        this.clearModel();
 
         const model = gltf.scene;
 
+        /*
+         * Make sure every component
+         * starts with an empty mesh list.
+         */
+
+        this.componentMeshes.clear();
+
+        for (const component of VALID_COMPONENTS) {
+          this.componentMeshes.set(component, []);
+        }
+
+        /*
+         * --------------------------------
+         * Inspect every mesh in GLB
+         * --------------------------------
+         */
+
         model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+          if (!(child as THREE.Mesh).isMesh) {
+            return;
+          }
 
-            const name = mesh.name.toLowerCase();
-            let matchedComp: SneakerComponent | null = null;
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
 
-            for (const comp of VALID_COMPONENTS) {
-              if (name === comp || name.startsWith(`${comp}_`)) {
-                matchedComp = comp as SneakerComponent;
-                break;
-              }
-            }
+          mesh.receiveShadow = true;
 
-            if (matchedComp) {
-              this.componentMeshes.set(matchedComp, mesh);
+          /*
+           * Find component based
+           * on Blender mesh name.
+           */
 
-              // Create custom PBR material
-              const preset =
-                MATERIAL_PRESETS[this.materials[matchedComp]] ||
-                MATERIAL_PRESETS.leather;
-              const material = new THREE.MeshStandardMaterial({
-                color: new THREE.Color(this.components[matchedComp]),
-                roughness: preset.roughness,
-                metalness: preset.metalness,
-              });
+          const component = this.findComponent(mesh.name);
 
-              mesh.material = material;
-              this.originalMaterials.set(matchedComp, material);
-            }
+          /*
+           * Preserve original
+           * Blender material.
+           */
+
+          if (component) {
+            const meshes = this.componentMeshes.get(component) ?? [];
+
+            meshes.push(mesh);
+
+            this.componentMeshes.set(component, meshes);
+
+            this.applyDesignToMesh(mesh, component);
           }
         });
 
+        /*
+         * Add model to scene.
+         */
+
         this.modelGroup.add(model);
 
-        // Automatically center camera target on loaded shoe
-        const box = new THREE.Box3().setFromObject(this.modelGroup);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
+        /*
+         * Center and frame it.
+         */
 
-        this.controls.target.copy(center);
-        const distance = Math.max(maxDim * 1.7, 0.35);
-        this.camera.position.set(
-          center.x + distance * 0.85,
-          center.y + distance * 0.45,
-          center.z + distance * 0.85,
-        );
-        this.controls.update();
+        this.frameModel();
+
+        /*
+         * Apply selected/hovered
+         * state.
+         */
 
         this.updateComponentHighlights();
       },
+
       undefined,
+
       (error) => {
         console.error("Error loading sneaker GLB model:", error);
       },
     );
   }
 
-  private bindEvents(): void {
-    const el = this.renderer.domElement;
+  /*
+   * ========================================
+   * FIND COMPONENT
+   * ========================================
+   */
 
-    el.addEventListener("pointerdown", this.onPointerDown);
-    el.addEventListener("pointermove", this.onPointerMove);
-    el.addEventListener("pointerup", this.onPointerUp);
-    el.addEventListener("pointerleave", this.onPointerLeave);
+  private findComponent(meshName: string): SneakerComponent | null {
+    const name = meshName.toLowerCase().replace(/[-\s]/g, "_");
+
+    for (const component of VALID_COMPONENTS) {
+      if (name === component || name.startsWith(`${component}_`)) {
+        return component;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * ========================================
+   * APPLY DESIGN
+   * ========================================
+   */
+
+  private applyDesignToMesh(
+    mesh: THREE.Mesh,
+    component: SneakerComponent,
+  ): void {
+    const color = this.components[component];
+
+    const materialType = this.materials[component];
+
+    const preset = MATERIAL_PRESETS[materialType] || MATERIAL_PRESETS.leather;
+
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT blindly replace the
+     * original Blender material.
+     *
+     * Instead, clone it.
+     */
+
+    const originalMaterial = mesh.material;
+
+    if (Array.isArray(originalMaterial)) {
+      /*
+       * If Blender exported multiple
+       * materials, clone them.
+       */
+
+      mesh.material = originalMaterial.map((material) => {
+        return this.prepareMaterial(material, color, preset);
+      });
+    } else {
+      mesh.material = this.prepareMaterial(originalMaterial, color, preset);
+    }
+  }
+
+  /*
+   * ========================================
+   * PREPARE MATERIAL
+   * ========================================
+   */
+
+  private prepareMaterial(
+    source: THREE.Material,
+    color: string,
+    preset: {
+      roughness: number;
+      metalness: number;
+    },
+  ): THREE.Material {
+    let material: THREE.Material | THREE.MeshStandardMaterial;
+
+    /*
+     * Clone original material.
+     */
+
+    material = source.clone();
+
+    /*
+     * Most GLB sneaker materials
+     * are MeshStandardMaterial.
+     */
+
+    if (material instanceof THREE.MeshStandardMaterial) {
+      /*
+       * Apply designer color.
+       */
+
+      material.color.set(color);
+
+      /*
+       * Apply selected material.
+       */
+
+      material.roughness = preset.roughness;
+
+      material.metalness = preset.metalness;
+
+      /*
+       * Make sure the material
+       * reacts correctly to lights.
+       */
+
+      material.needsUpdate = true;
+    }
+
+    return material;
+  }
+
+  /*
+   * ========================================
+   * FRAME MODEL
+   * ========================================
+   */
+
+  private frameModel(): void {
+    const box = new THREE.Box3().setFromObject(this.modelGroup);
+
+    const size = box.getSize(new THREE.Vector3());
+
+    const center = box.getCenter(new THREE.Vector3());
+
+    const maxDimension = Math.max(size.x, size.y, size.z);
+
+    if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+      return;
+    }
+
+    /*
+     * Move model so its center
+     * is around the origin.
+     */
+
+    this.modelGroup.position.x -= center.x;
+
+    this.modelGroup.position.y -= center.y;
+
+    this.modelGroup.position.z -= center.z;
+
+    /*
+     * Recalculate bounds after
+     * centering.
+     */
+
+    const centeredBox = new THREE.Box3().setFromObject(this.modelGroup);
+
+    const centeredSize = centeredBox.getSize(new THREE.Vector3());
+
+    const centeredCenter = centeredBox.getCenter(new THREE.Vector3());
+
+    const largestDimension = Math.max(
+      centeredSize.x,
+      centeredSize.y,
+      centeredSize.z,
+    );
+
+    /*
+     * Camera distance based on
+     * actual model size.
+     */
+
+    const fov = THREE.MathUtils.degToRad(this.camera.fov);
+
+    const distance = largestDimension / 2 / Math.tan(fov / 2);
+
+    const cameraDistance = distance * 1.35;
+
+    /*
+     * Put camera in a nice
+     * three-quarter view.
+     */
+
+    this.camera.position.set(
+      cameraDistance * 0.85,
+      cameraDistance * 0.45,
+      cameraDistance * 0.85,
+    );
+
+    this.camera.near = Math.max(largestDimension / 1000, 0.001);
+
+    this.camera.far = Math.max(largestDimension * 20, 100);
+
+    this.camera.updateProjectionMatrix();
+
+    /*
+     * OrbitControls looks at
+     * the center of the sneaker.
+     */
+
+    this.controls.target.copy(centeredCenter);
+
+    this.controls.minDistance = largestDimension * 0.4;
+
+    this.controls.maxDistance = largestDimension * 5;
+
+    this.controls.update();
+  }
+
+  /*
+   * ========================================
+   * CLEAR MODEL
+   * ========================================
+   */
+
+  private clearModel(): void {
+    while (this.modelGroup.children.length) {
+      const object = this.modelGroup.children[0];
+
+      this.modelGroup.remove(object);
+
+      object.traverse((child) => {
+        if (!(child as THREE.Mesh).isMesh) {
+          return;
+        }
+
+        const mesh = child as THREE.Mesh;
+
+        mesh.geometry.dispose();
+
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((material) => {
+            material.dispose();
+          });
+        } else {
+          mesh.material.dispose();
+        }
+      });
+    }
+  }
+
+  /*
+   * ========================================
+   * EVENTS
+   * ========================================
+   */
+
+  private bindEvents(): void {
+    const element = this.renderer.domElement;
+
+    element.addEventListener("pointerdown", this.onPointerDown);
+
+    element.addEventListener("pointermove", this.onPointerMove);
+
+    element.addEventListener("pointerup", this.onPointerUp);
+
+    element.addEventListener("pointerleave", this.onPointerLeave);
 
     this.resizeObserver = new ResizeObserver(() => {
       window.requestAnimationFrame(() => {
         this.resize();
       });
     });
+
     this.resizeObserver.observe(this.container);
   }
 
   private onPointerDown = (event: PointerEvent): void => {
     this.isPointerDown = true;
-    this.pointerDownPos = { x: event.clientX, y: event.clientY };
+
+    this.pointerDownPos = {
+      x: event.clientX,
+      y: event.clientY,
+    };
   };
 
   private onPointerMove = (event: PointerEvent): void => {
-    if (this.isPointerDown) return;
+    if (this.isPointerDown) {
+      return;
+    }
 
     const rect = this.renderer.domElement.getBoundingClientRect();
+
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    // Raycast on hover
+    this.mouse.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
+
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const meshes = Array.from(this.componentMeshes.values());
-    const intersects = this.raycaster.intersectObjects(meshes, false);
 
-    if (intersects.length > 0) {
-      const hit = intersects[0].object as THREE.Mesh;
-      let hovered: SneakerComponent | null = null;
-      for (const [comp, mesh] of this.componentMeshes.entries()) {
-        if (mesh === hit) {
-          hovered = comp;
-          break;
-        }
-      }
+    const meshes = Array.from(this.componentMeshes.values()).flat();
 
-      if (this.hoveredComponent !== hovered) {
-        this.hoveredComponent = hovered;
-        this.container.style.cursor = hovered ? "pointer" : "default";
+    const intersections = this.raycaster.intersectObjects(meshes, false);
+
+    if (intersections.length > 0) {
+      const hit = intersections[0].object as THREE.Mesh;
+
+      const component = this.findComponent(hit.name);
+
+      if (component !== this.hoveredComponent) {
+        this.hoveredComponent = component;
+
+        this.container.style.cursor = "pointer";
+
         this.updateComponentHighlights();
-        this.onHoverComponent?.(hovered);
+
+        this.onHoverComponent?.(component);
       }
-    } else if (this.hoveredComponent !== null) {
+
+      return;
+    }
+
+    if (this.hoveredComponent !== null) {
       this.hoveredComponent = null;
+
       this.container.style.cursor = "default";
+
       this.updateComponentHighlights();
+
       this.onHoverComponent?.(null);
     }
   };
 
   private onPointerUp = (event: PointerEvent): void => {
-    const dist = Math.hypot(
+    const distance = Math.hypot(
       event.clientX - this.pointerDownPos.x,
       event.clientY - this.pointerDownPos.y,
     );
 
-    // If click (not drag)
-    if (dist < 6) {
-      if (this.hoveredComponent) {
-        this.setSelectedComponent(this.hoveredComponent);
-        this.onSelectComponent?.(this.hoveredComponent);
-      }
+    if (distance < 6 && this.hoveredComponent) {
+      this.setSelectedComponent(this.hoveredComponent);
+
+      this.onSelectComponent?.(this.hoveredComponent);
     }
 
     this.isPointerDown = false;
@@ -370,61 +761,119 @@ export class Sneaker3DViewer {
 
   private onPointerLeave = (): void => {
     this.mouse.set(-1000, -1000);
+
     if (this.hoveredComponent !== null) {
       this.hoveredComponent = null;
+
       this.container.style.cursor = "default";
+
       this.updateComponentHighlights();
+
       this.onHoverComponent?.(null);
     }
+
     this.isPointerDown = false;
   };
 
+  /*
+   * ========================================
+   * HIGHLIGHTS
+   * ========================================
+   */
+
   private updateComponentHighlights(): void {
-    for (const [comp, mesh] of this.componentMeshes.entries()) {
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (!mat) continue;
+    for (const [component, meshes] of this.componentMeshes.entries()) {
+      const isSelected = this.selectedComponent === component;
 
-      const isSelected = this.selectedComponent === comp;
-      const isHovered = this.hoveredComponent === comp;
+      const isHovered = this.hoveredComponent === component;
 
-      if (isSelected) {
-        mat.emissive.setHex(0x334466);
-        mat.emissiveIntensity = 0.45;
-      } else if (isHovered) {
-        mat.emissive.setHex(0x222222);
-        mat.emissiveIntensity = 0.25;
-      } else {
-        mat.emissive.setHex(0x000000);
-        mat.emissiveIntensity = 0.0;
+      for (const mesh of meshes) {
+        const material = mesh.material;
+
+        const materials = Array.isArray(material) ? material : [material];
+
+        for (const currentMaterial of materials) {
+          if (!(currentMaterial instanceof THREE.MeshStandardMaterial)) {
+            continue;
+          }
+
+          if (isSelected) {
+            currentMaterial.emissive.set("#334466");
+
+            currentMaterial.emissiveIntensity = 0.45;
+          } else if (isHovered) {
+            currentMaterial.emissive.set("#222222");
+
+            currentMaterial.emissiveIntensity = 0.2;
+          } else {
+            currentMaterial.emissive.set("#000000");
+
+            currentMaterial.emissiveIntensity = 0;
+          }
+
+          currentMaterial.needsUpdate = true;
+        }
       }
     }
   }
 
-  // --- Public Control Methods ---
+  /*
+   * ========================================
+   * PUBLIC API
+   * ========================================
+   */
 
   public setComponentColor(component: SneakerComponent, color: string): void {
     this.components[component] = color;
-    const mesh = this.componentMeshes.get(component);
-    if (mesh) {
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (mat) {
-        mat.color.set(color);
+
+    const meshes = this.componentMeshes.get(component);
+
+    if (!meshes) {
+      return;
+    }
+
+    for (const mesh of meshes) {
+      const material = mesh.material;
+
+      const materials = Array.isArray(material) ? material : [material];
+
+      for (const currentMaterial of materials) {
+        if (currentMaterial instanceof THREE.MeshStandardMaterial) {
+          currentMaterial.color.set(color);
+
+          currentMaterial.needsUpdate = true;
+        }
       }
     }
   }
 
   public setComponentMaterial(
     component: SneakerComponent,
-    material: SneakerMaterial,
+    materialType: SneakerMaterial,
   ): void {
-    this.materials[component] = material;
-    const preset = MATERIAL_PRESETS[material] || MATERIAL_PRESETS.leather;
-    const mesh = this.componentMeshes.get(component);
-    if (mesh) {
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (mat) {
-        mat.roughness = preset.roughness;
-        mat.metalness = preset.metalness;
+    this.materials[component] = materialType;
+
+    const preset = MATERIAL_PRESETS[materialType] || MATERIAL_PRESETS.leather;
+
+    const meshes = this.componentMeshes.get(component);
+
+    if (!meshes) {
+      return;
+    }
+
+    for (const mesh of meshes) {
+      const material = mesh.material;
+
+      const materials = Array.isArray(material) ? material : [material];
+
+      for (const currentMaterial of materials) {
+        if (currentMaterial instanceof THREE.MeshStandardMaterial) {
+          currentMaterial.roughness = preset.roughness;
+
+          currentMaterial.metalness = preset.metalness;
+
+          currentMaterial.needsUpdate = true;
+        }
       }
     }
   }
@@ -433,89 +882,130 @@ export class Sneaker3DViewer {
     components: Record<SneakerComponent, string>,
     materials: Record<SneakerComponent, SneakerMaterial>,
   ): void {
-    this.components = { ...components };
-    this.materials = { ...materials };
+    this.components = {
+      ...components,
+    };
 
-    for (const [comp, mesh] of this.componentMeshes.entries()) {
-      const color = components[comp];
-      const matType = materials[comp];
-      const preset = MATERIAL_PRESETS[matType] || MATERIAL_PRESETS.leather;
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (mat) {
-        if (color) mat.color.set(color);
-        mat.roughness = preset.roughness;
-        mat.metalness = preset.metalness;
-      }
+    this.materials = {
+      ...materials,
+    };
+
+    for (const component of VALID_COMPONENTS) {
+      this.setComponentColor(component, components[component]);
+
+      this.setComponentMaterial(component, materials[component]);
     }
+
+    this.updateComponentHighlights();
   }
 
   public setSelectedComponent(component: SneakerComponent | null): void {
     this.selectedComponent = component;
+
     this.updateComponentHighlights();
   }
 
   public resetCamera(): void {
-    this.camera.position.set(0.3, 0.16, 0.28);
-    this.controls.target.set(0, 0.055, 0);
-    this.controls.update();
+    if (this.modelGroup.children.length === 0) {
+      return;
+    }
+
+    this.frameModel();
   }
 
   public setAutoRotate(enabled: boolean): void {
     this.controls.autoRotate = enabled;
-    this.controls.autoRotateSpeed = 2.0;
+
+    this.controls.autoRotateSpeed = 2;
   }
 
   public resize(): void {
-    if (this.isDisposed) return;
+    if (this.isDisposed) {
+      return;
+    }
+
     const width = this.container.clientWidth || 600;
+
     const height = this.container.clientHeight || 450;
+
     this.camera.aspect = width / height;
+
     this.camera.updateProjectionMatrix();
+
     this.renderer.setSize(width, height);
   }
 
+  /*
+   * ========================================
+   * ANIMATION
+   * ========================================
+   */
+
   private animate = (): void => {
-    if (this.isDisposed) return;
+    if (this.isDisposed) {
+      return;
+    }
+
     this.animationFrameId = requestAnimationFrame(this.animate);
+
     this.controls.update();
+
     this.renderer.render(this.scene, this.camera);
   };
 
+  /*
+   * ========================================
+   * DESTROY
+   * ========================================
+   */
+
   public destroy(): void {
     this.isDisposed = true;
+
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
 
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
+
       this.resizeObserver = null;
     }
 
-    const el = this.renderer.domElement;
-    el.removeEventListener("pointerdown", this.onPointerDown);
-    el.removeEventListener("pointermove", this.onPointerMove);
-    el.removeEventListener("pointerup", this.onPointerUp);
-    el.removeEventListener("pointerleave", this.onPointerLeave);
+    const element = this.renderer.domElement;
+
+    element.removeEventListener("pointerdown", this.onPointerDown);
+
+    element.removeEventListener("pointermove", this.onPointerMove);
+
+    element.removeEventListener("pointerup", this.onPointerUp);
+
+    element.removeEventListener("pointerleave", this.onPointerLeave);
 
     this.controls.dispose();
 
-    // Dispose meshes and materials
-    this.scene.traverse((obj) => {
-      if ((obj as THREE.Mesh).isMesh) {
-        const mesh = obj as THREE.Mesh;
-        mesh.geometry.dispose();
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((m) => m.dispose());
-        } else if (mesh.material) {
-          mesh.material.dispose();
-        }
+    this.scene.traverse((object) => {
+      if (!(object as THREE.Mesh).isMesh) {
+        return;
+      }
+
+      const mesh = object as THREE.Mesh;
+
+      mesh.geometry.dispose();
+
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach((material) => {
+          material.dispose();
+        });
+      } else {
+        mesh.material.dispose();
       }
     });
 
     this.renderer.dispose();
-    if (el.parentNode) {
-      el.parentNode.removeChild(el);
+
+    if (element.parentNode) {
+      element.parentNode.removeChild(element);
     }
   }
 }

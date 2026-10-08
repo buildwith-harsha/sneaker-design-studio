@@ -43,3 +43,7 @@ export const removeCachedDesign = (id: number): void => {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDesigns));
 };
+
+export const clearCachedDesigns = (): void => {
+  localStorage.removeItem(STORAGE_KEY);
+};
