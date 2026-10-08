@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import AppHeader from "./components/AppHeader";
 import DesignEditor from "./components/DesignEditor";
 import MyDesigns from "./components/MyDesigns";
@@ -8,6 +8,12 @@ import RegisterPage from "./pages/RegisterPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAppDispatch } from "./store/hooks";
 import { checkAuth, logout } from "./store/authSlice";
+
+// Legacy redirect helper for /designs/:id -> /studio/:id
+function LegacyDesignRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/studio/${id}`} replace />;
+}
 
 function App() {
   const dispatch = useAppDispatch();
@@ -36,12 +42,28 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected Studio & Design Routes */}
+        {/* Professional Studio & Collection Routes */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
-              <Navigate to="/designs/new" replace />
+              <Navigate to="/studio" replace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio"
+          element={
+            <ProtectedRoute>
+              <DesignEditor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/studio/:id"
+          element={
+            <ProtectedRoute>
+              <DesignEditor />
             </ProtectedRoute>
           }
         />
@@ -53,25 +75,13 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/designs/new"
-          element={
-            <ProtectedRoute>
-              <DesignEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/designs/:id"
-          element={
-            <ProtectedRoute>
-              <DesignEditor />
-            </ProtectedRoute>
-          }
-        />
+
+        {/* Backward Compatibility Redirects */}
+        <Route path="/designs/new" element={<Navigate to="/studio" replace />} />
+        <Route path="/designs/:id" element={<LegacyDesignRedirect />} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/studio" replace />} />
       </Routes>
     </>
   );

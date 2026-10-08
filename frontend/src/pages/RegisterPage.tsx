@@ -24,7 +24,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/designs/new", { replace: true });
+      navigate("/studio", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -45,8 +45,13 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setClientError("Password must be at least 6 characters long.");
+    if (password.length < 8) {
+      setClientError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      setClientError("Password must contain both letters and numbers.");
       return;
     }
 

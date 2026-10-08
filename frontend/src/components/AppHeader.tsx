@@ -24,22 +24,22 @@ function AppHeader() {
     <header className="app-header">
       <div className="app-header__container">
         <NavLink
-          to="/designs/new"
+          to={isAuthenticated ? "/studio" : "/"}
           className="app-header__brand"
-          aria-label="FORM LAB home"
+          aria-label="FORM LAB Sneaker Studio"
         >
-          FORM<span>LAB</span>
+          FORM<span className="app-header__brand-lab">LAB</span>
         </NavLink>
 
         {isAuthenticated && (
           <nav className="app-header__nav" aria-label="Main navigation">
             <NavLink
-              to="/designs/new"
+              to="/studio"
               className={({ isActive }) =>
                 `app-header__link ${isActive ? "app-header__link--active" : ""}`
               }
             >
-              New Design
+              🎨 Studio
             </NavLink>
 
             <NavLink
@@ -48,7 +48,7 @@ function AppHeader() {
                 `app-header__link ${isActive ? "app-header__link--active" : ""}`
               }
             >
-              My Designs
+              👟 My Collection
             </NavLink>
           </nav>
         )}
@@ -66,7 +66,7 @@ function AppHeader() {
               </div>
               <button
                 type="button"
-                className="app-header__btn"
+                className="app-header__btn app-header__btn--logout"
                 onClick={handleLogout}
               >
                 Log Out
@@ -81,7 +81,7 @@ function AppHeader() {
                 to="/register"
                 className="app-header__btn app-header__btn--primary"
               >
-                Sign Up
+                Create Account
               </NavLink>
             </>
           )}

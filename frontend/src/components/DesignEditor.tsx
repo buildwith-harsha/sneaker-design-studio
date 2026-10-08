@@ -1,14 +1,17 @@
 import ColorPicker from "./ColorPicker";
-
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import SneakerPreview from "./SneakerPreview";
 import { sneakerComponent as componentConfig } from "../data/sneakerComponent";
-import { createDesign, getDesignById, updateDesign } from "../api/designApi";
+import {
+  createDesign,
+  getDesignById,
+  updateDesign,
+  getDesignVersions,
+  restoreDesignVersion,
+} from "../api/designApi";
 import { getCachedDesign, cacheDesign } from "../utils/designStorage";
-import { useEffect, useState } from "react";
-
+import { useEffect, useState, useCallback } from "react";
 import { materials, type SneakerMaterial } from "../data/materials";
-
 import {
   setComponentColor,
   setComponentMaterial,
@@ -18,151 +21,258 @@ import {
   loadDesign,
   setModel,
 } from "../store/DesignSlice";
-import { useParams } from "react-router-dom";
-
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { sneakerModels, type SneakerModel } from "../data/sneakerModels";
+import type { DesignVersion } from "../store/DesignTypes";
+import "../assets/css/design-editor.css";
 
-function DesignEditor() {
+export default function DesignEditor() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [designName, setDesignName] = useState("My Sneaker Design");
+  const [saving, setSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  //-------------- Redux State Selectors ----------------
+  // Version History Modal State
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [versions, setVersions] = useState<DesignVersion[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
+  // Redux Selectors
   const model = useAppSelector((state) => state.design.model);
-
   const components = useAppSelector((state) => state.design.components);
-
   const componentMaterials = useAppSelector((state) => state.design.materials);
-
   const selectedComponent = useAppSelector(
     (state) => state.editor.selectedComponent,
   );
-
   const past = useAppSelector((state) => state.design.past);
-
   const future = useAppSelector((state) => state.design.future);
 
-  //------------------------------------------------------
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  }, []);
 
+  // Save Design handler
   const handleSave = async () => {
+    setSaving(true);
     const name = designName.trim() || "My Sneaker Design";
 
     const designData = {
       name,
       model,
-      components: {
-        ...components,
-      },
-      materials: {
-        ...componentMaterials,
-      },
+      components: { ...components },
+      materials: { ...componentMaterials },
     };
 
     try {
-      /*
-       * Existing design
-       */
       if (id) {
         const designId = Number(id);
-
         const updatedDesign = await updateDesign(designId, {
           id: designId,
           ...designData,
+          change_summary: `Updated ${new Date().toLocaleTimeString()}`,
         });
 
         cacheDesign(updatedDesign);
-
-        return;
+        showToast("✓ Design and version history saved!");
+      } else {
+        const savedDesign = await createDesign(designData);
+        cacheDesign(savedDesign);
+        showToast("✓ Design created successfully!");
+        navigate(`/studio/${savedDesign.id}`, { replace: true });
       }
-
-      /*
-       * New design
-       */
-      const savedDesign = await createDesign(designData);
-
-      cacheDesign(savedDesign);
     } catch (error) {
       console.error("Failed to save design:", error);
+      showToast("⚠️ Failed to save design. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
-  /*
-   * Load an existing design
-   */
+
+  // Load existing design on mount or ID change
   useEffect(() => {
-    if (!id) {
-      return;
-    }
+    if (!id) return;
 
     const designId = Number(id);
-
     const loadExistingDesign = async () => {
+      // 1. Load cache first
+      const cached = getCachedDesign(designId);
+      if (cached) {
+        setDesignName(cached.name);
+        dispatch(
+          loadDesign({
+            model: cached.model,
+            components: { ...cached.components },
+            materials: { ...cached.materials },
+          }),
+        );
+      }
+
+      // 2. Refresh from server
       try {
-        /*
-         * 1. Load cache first
-         */
-        const cachedDesign = getCachedDesign(designId);
-
-        if (cachedDesign) {
-          setDesignName(cachedDesign.name);
-
-          dispatch(
-            loadDesign({
-              model: cachedDesign.model,
-
-              components: {
-                ...cachedDesign.components,
-              },
-
-              materials: {
-                ...cachedDesign.materials,
-              },
-            }),
-          );
-        }
-
-        /*
-         * 2. Get latest
-         *    version from MySQL
-         */
         const design = await getDesignById(designId);
-
-        /*
-         * 3. Update Redux
-         */
         setDesignName(design.name);
-
         dispatch(
           loadDesign({
             model: design.model,
-
-            components: {
-              ...design.components,
-            },
-
-            materials: {
-              ...design.materials,
-            },
+            components: { ...design.components },
+            materials: { ...design.materials },
           }),
         );
-
-        /*
-         * 4. Refresh cache
-         */
         cacheDesign(design);
       } catch (error) {
-        console.error("Failed to load design:", error);
+        console.error("Failed to fetch design:", error);
       }
     };
 
     loadExistingDesign();
   }, [id, dispatch]);
 
+  // Fetch Version History
+  const handleOpenHistory = async () => {
+    if (!id) return;
+    setShowHistoryModal(true);
+    setLoadingVersions(true);
+    try {
+      const data = await getDesignVersions(Number(id));
+      setVersions(data);
+    } catch (err) {
+      console.error("Failed to fetch versions:", err);
+    } finally {
+      setLoadingVersions(false);
+    }
+  };
+
+  // Restore a Version
+  const handleRestoreVersion = async (versionNumber: number) => {
+    if (!id) return;
+    try {
+      const restored = await restoreDesignVersion(Number(id), versionNumber);
+      setDesignName(restored.name);
+      dispatch(
+        loadDesign({
+          model: restored.model,
+          components: { ...restored.components },
+          materials: { ...restored.materials },
+        }),
+      );
+      cacheDesign(restored);
+      setShowHistoryModal(false);
+      showToast(`✓ Restored to Version ${versionNumber}!`);
+    } catch (err) {
+      console.error("Failed to restore version:", err);
+      showToast("⚠️ Could not restore version.");
+    }
+  };
+
   return (
     <div className="design-editor">
       <header className="design-editor__header">
-        <h1 className="design-editor__title">Sneaker Design Studio</h1>
+        <div className="design-editor__header-left">
+          <Link to="/designs" className="design-editor__back-link">
+            ← My Collection
+          </Link>
+          <h1 className="design-editor__title">
+            {id ? `Editing: ${designName}` : "Create New Sneaker"}
+          </h1>
+        </div>
+
+        <div className="design-editor__header-right">
+          {id && (
+            <button
+              type="button"
+              className="design-editor__history-btn"
+              onClick={handleOpenHistory}
+            >
+              📜 Version History
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="design-editor__save-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "💾 Save Design"}
+          </button>
+        </div>
       </header>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="design-editor__toast">{toastMessage}</div>
+      )}
+
+      {/* Version History Modal */}
+      {showHistoryModal && (
+        <div
+          className="version-modal-backdrop"
+          onClick={() => setShowHistoryModal(false)}
+        >
+          <div
+            className="version-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="version-modal__header">
+              <h2 className="version-modal__title">📜 Design Version History</h2>
+              <button
+                type="button"
+                className="version-modal__close"
+                onClick={() => setShowHistoryModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="version-modal__body">
+              {loadingVersions ? (
+                <p>Loading version history...</p>
+              ) : versions.length === 0 ? (
+                <p>No saved versions found.</p>
+              ) : (
+                versions.map((ver, idx) => (
+                  <div key={ver.id || ver.version_number} className="version-item">
+                    <div className="version-item__info">
+                      <div className="version-item__tag">
+                        v{ver.version_number} {idx === 0 ? "• Latest" : ""}
+                      </div>
+                      <div className="version-item__name">
+                        {ver.change_summary || ver.name}
+                      </div>
+                      <div className="version-item__date">
+                        {new Date(ver.created_at).toLocaleString()}
+                      </div>
+                      <div className="version-item__palette">
+                        {Object.values(ver.components)
+                          .slice(0, 6)
+                          .map((color, cIdx) => (
+                            <span
+                              key={cIdx}
+                              className="version-item__dot"
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
+                          ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="version-item__restore-btn"
+                      onClick={() => handleRestoreVersion(ver.version_number)}
+                    >
+                      ↩ Restore
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="design-editor__workspace">
         <section className="design-editor__preview">
@@ -175,22 +285,21 @@ function DesignEditor() {
             <label htmlFor="design-name" className="design-editor__label">
               Design Name
             </label>
-
             <input
               id="design-name"
               type="text"
               value={designName}
               onChange={(event) => setDesignName(event.target.value)}
               className="design-editor__input"
+              placeholder="e.g. Cyberpunk Runner"
             />
           </div>
 
           {/* Sneaker Model */}
           <div className="design-editor__field">
             <label htmlFor="sneaker-model" className="design-editor__label">
-              Sneaker Model
+              Sneaker Silhouette
             </label>
-
             <select
               id="sneaker-model"
               value={model}
@@ -207,22 +316,21 @@ function DesignEditor() {
             </select>
           </div>
 
-          <h2 className="design-editor__panel-title">Customize</h2>
+          <h2 className="design-editor__panel-title">🎨 Color & Materials</h2>
 
           {!selectedComponent ? (
-            <p className="design-editor__empty">
-              Click a sneaker component to customize it.
-            </p>
+            <div className="design-editor__empty">
+              Click any sneaker part on the canvas to customize its color and material.
+            </div>
           ) : (
             <>
-              {/* Selected Component */}
-              <h3 className="design-editor__component">
-                {componentConfig[selectedComponent].label}
-              </h3>
+              <div className="design-editor__component-badge">
+                Selected: {componentConfig[selectedComponent].label}
+              </div>
 
-              {/* Color */}
+              {/* Color Picker */}
               <ColorPicker
-                label="Color"
+                label="Component Color"
                 value={components[selectedComponent]}
                 onChange={(color) => {
                   dispatch(
@@ -234,15 +342,14 @@ function DesignEditor() {
                 }}
               />
 
-              {/* Material */}
-              <div className="design-editor__field">
+              {/* Material Dropdown */}
+              <div className="design-editor__field" style={{ marginTop: "1rem" }}>
                 <label
                   htmlFor="component-material"
                   className="design-editor__label"
                 >
-                  Material
+                  Surface Material
                 </label>
-
                 <select
                   id="component-material"
                   value={componentMaterials[selectedComponent]}
@@ -250,16 +357,15 @@ function DesignEditor() {
                     dispatch(
                       setComponentMaterial({
                         component: selectedComponent,
-
                         material: event.target.value as SneakerMaterial,
                       }),
                     )
                   }
                   className="design-editor__input"
                 >
-                  {materials.map((material) => (
-                    <option key={material.id} value={material.id}>
-                      {material.name}
+                  {materials.map((mat) => (
+                    <option key={mat.id} value={mat.id}>
+                      {mat.name}
                     </option>
                   ))}
                 </select>
@@ -271,6 +377,7 @@ function DesignEditor() {
           <div className="design-editor__actions">
             <button
               type="button"
+              className="design-editor__action-btn"
               onClick={() => dispatch(undo())}
               disabled={past.length === 0}
             >
@@ -279,6 +386,7 @@ function DesignEditor() {
 
             <button
               type="button"
+              className="design-editor__action-btn"
               onClick={() => dispatch(redo())}
               disabled={future.length === 0}
             >
@@ -287,18 +395,15 @@ function DesignEditor() {
           </div>
 
           {/* Reset */}
-          <button type="button" onClick={() => dispatch(resetDesign())}>
-            Reset Design
+          <button
+            type="button"
+            className="design-editor__reset-btn"
+            onClick={() => dispatch(resetDesign())}
+          >
+            Reset to Default Colors
           </button>
         </aside>
-
-        {/* Save */}
-        <button type="button" onClick={handleSave}>
-          Save Design
-        </button>
       </main>
     </div>
   );
 }
-
-export default DesignEditor;
