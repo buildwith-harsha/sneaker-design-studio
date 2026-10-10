@@ -9,13 +9,13 @@ try {
 import app from "./app.js";
 import { initDatabase } from "./config/initDb.js";
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 async function bootstrap() {
   await initDatabase();
 
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server listening on port ${PORT}`);
   });
 }
 
