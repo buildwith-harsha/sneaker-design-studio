@@ -75,10 +75,11 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-badge">FORMLAB STUDIO</span>
+          <span className="auth-badge">SNEAKER DESIGN STUDIO</span>
           <h1 className="auth-title">Create Account</h1>
           <p className="auth-subtitle">
-            Join FormLab to start creating, styling and saving sneakers
+            Join SNEAKER DESIGN STUDIO to start creating, styling and saving
+            sneakers
           </p>
         </div>
 
@@ -166,11 +167,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={loading}
-          >
+          <button type="submit" className="auth-submit-btn" disabled={loading}>
             {loading ? (
               <>
                 <span className="spinner" />

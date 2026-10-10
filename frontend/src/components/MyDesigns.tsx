@@ -81,7 +81,9 @@ export default function MyDesigns() {
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this sneaker design?")) {
+    if (
+      !window.confirm("Are you sure you want to delete this sneaker design?")
+    ) {
       return;
     }
 
@@ -273,7 +275,7 @@ export default function MyDesigns() {
                         className="my-designs__open-btn"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        🎨 Open in Studio
+                        Open in Studio
                       </Link>
                       <button
                         type="button"
@@ -281,7 +283,7 @@ export default function MyDesigns() {
                         onClick={(e) => handleDelete(design.id, e)}
                         title="Delete design"
                       >
-                        🗑️ Delete
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -307,22 +309,23 @@ export default function MyDesigns() {
                     ← Prev
                   </button>
 
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(
-                    (pageNum) => (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        className={`my-designs__page-btn ${
-                          pageNum === currentPage
-                            ? "my-designs__page-btn--active"
-                            : ""
-                        }`}
-                        onClick={() => handlePageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
-                    ),
-                  )}
+                  {Array.from(
+                    { length: pagination.totalPages },
+                    (_, i) => i + 1,
+                  ).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      className={`my-designs__page-btn ${
+                        pageNum === currentPage
+                          ? "my-designs__page-btn--active"
+                          : ""
+                      }`}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
 
                   <button
                     type="button"

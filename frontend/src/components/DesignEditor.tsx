@@ -21,7 +21,7 @@ import {
   loadDesign,
   setModel,
 } from "../store/DesignSlice";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { sneakerModels, type SneakerModel } from "../data/sneakerModels";
 import type { DesignVersion } from "../store/DesignTypes";
 import "../assets/css/design-editor.css";
@@ -171,9 +171,6 @@ export default function DesignEditor() {
     <div className="design-editor">
       <header className="design-editor__header">
         <div className="design-editor__header-left">
-          <Link to="/designs" className="design-editor__back-link">
-            ← My Collection
-          </Link>
           <h1 className="design-editor__title">
             {id ? `Editing: ${designName}` : "Create New Sneaker"}
           </h1>
@@ -186,7 +183,7 @@ export default function DesignEditor() {
               className="design-editor__history-btn"
               onClick={handleOpenHistory}
             >
-              📜 Version History
+              History
             </button>
           )}
 
@@ -196,7 +193,7 @@ export default function DesignEditor() {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saving..." : "💾 Save Design"}
+            {saving ? "Saving..." : "Save Design"}
           </button>
         </div>
       </header>
@@ -212,12 +209,9 @@ export default function DesignEditor() {
           className="version-modal-backdrop"
           onClick={() => setShowHistoryModal(false)}
         >
-          <div
-            className="version-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="version-modal" onClick={(e) => e.stopPropagation()}>
             <div className="version-modal__header">
-              <h2 className="version-modal__title">📜 Design Version History</h2>
+              <h2 className="version-modal__title">Design History</h2>
               <button
                 type="button"
                 className="version-modal__close"
@@ -234,7 +228,10 @@ export default function DesignEditor() {
                 <p>No saved versions found.</p>
               ) : (
                 versions.map((ver, idx) => (
-                  <div key={ver.id || ver.version_number} className="version-item">
+                  <div
+                    key={ver.id || ver.version_number}
+                    className="version-item"
+                  >
                     <div className="version-item__info">
                       <div className="version-item__tag">
                         v{ver.version_number} {idx === 0 ? "• Latest" : ""}
@@ -316,11 +313,12 @@ export default function DesignEditor() {
             </select>
           </div>
 
-          <h2 className="design-editor__panel-title">🎨 Color & Materials</h2>
+          <h2 className="design-editor__panel-title"> Color & Materials</h2>
 
           {!selectedComponent ? (
             <div className="design-editor__empty">
-              Click any sneaker part on the canvas to customize its color and material.
+              Click any sneaker part on the canvas to customize its color and
+              material.
             </div>
           ) : (
             <>
@@ -343,7 +341,10 @@ export default function DesignEditor() {
               />
 
               {/* Material Dropdown */}
-              <div className="design-editor__field" style={{ marginTop: "1rem" }}>
+              <div
+                className="design-editor__field"
+                style={{ marginTop: "1rem" }}
+              >
                 <label
                   htmlFor="component-material"
                   className="design-editor__label"
@@ -400,7 +401,7 @@ export default function DesignEditor() {
             className="design-editor__reset-btn"
             onClick={() => dispatch(resetDesign())}
           >
-            Reset to Default Colors
+            Reset
           </button>
         </aside>
       </main>

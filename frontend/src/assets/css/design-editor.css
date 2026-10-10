@@ -51,7 +51,7 @@
 .design-editor__title {
   margin: 0;
   font-size: 1.35rem;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: -0.03em;
   color: #0f172a;
 }
@@ -155,8 +155,12 @@
   align-items: center;
   justify-content: center;
   padding: 2.5rem;
-  background: 
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 80%),
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.8) 0%,
+      transparent 80%
+    ),
     linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
   position: relative;
   overflow: hidden;
@@ -315,7 +319,7 @@
 .design-editor__panel-title {
   margin: 0;
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 500;
   color: #0f172a;
   display: flex;
   align-items: center;
@@ -445,8 +449,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .version-modal {

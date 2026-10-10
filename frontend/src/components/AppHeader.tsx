@@ -26,9 +26,9 @@ function AppHeader() {
         <NavLink
           to={isAuthenticated ? "/studio" : "/"}
           className="app-header__brand"
-          aria-label="FORM LAB Sneaker Studio"
+          aria-label="SNEAKER DESIGN STUDIO"
         >
-          FORM<span className="app-header__brand-lab">LAB</span>
+          SNEAKER DESIGN STUDIO
         </NavLink>
 
         {isAuthenticated && (
@@ -39,7 +39,7 @@ function AppHeader() {
                 `app-header__link ${isActive ? "app-header__link--active" : ""}`
               }
             >
-              🎨 Studio
+              Studio
             </NavLink>
 
             <NavLink
@@ -48,7 +48,7 @@ function AppHeader() {
                 `app-header__link ${isActive ? "app-header__link--active" : ""}`
               }
             >
-              👟 My Collection
+              My Collection
             </NavLink>
           </nav>
         )}

@@ -5,7 +5,7 @@
 
 .my-designs {
   min-height: calc(100vh - 76px);
-  background: 
+  background:
     radial-gradient(at 0% 0%, rgba(255, 71, 87, 0.05) 0px, transparent 40%),
     radial-gradient(at 100% 0%, rgba(79, 70, 229, 0.05) 0px, transparent 40%),
     #f8fafc;
@@ -53,7 +53,7 @@
 .my-designs__title {
   margin: 0;
   font-size: 2.5rem;
-  font-weight: 900;
+  font-weight: 300;
   letter-spacing: -0.04em;
   color: #0f172a;
 }
@@ -250,7 +250,7 @@
 .my-designs__card:hover {
   transform: translateY(-4px);
   border-color: #cbd5e1;
-  box-shadow: 
+  box-shadow:
     0 20px 35px -8px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(79, 70, 229, 0.15);
 }
