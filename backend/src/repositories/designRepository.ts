@@ -1,43 +1,16 @@
-import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import pool from "../config/database.js";
-import { DesignModel, DesignVersionModel } from "../models/designModel.js";
+import {
+  DesignModel,
+  DesignVersionModel,
+  type DesignModelData,
+  type DesignVersionModelData,
+} from "../models/designModel.js";
 import type {
   DesignComponents,
   DesignMaterials,
   DesignQueryOptions,
   PaginationMeta,
 } from "../types/design.js";
-
-interface DesignRow extends RowDataPacket {
-  id: number;
-  user_id: number;
-  name: string;
-  model: string;
-  components: string | DesignComponents;
-  materials: string | DesignMaterials;
-  created_at: string;
-  updated_at: string;
-}
-
-interface DesignVersionRow extends RowDataPacket {
-  id: number;
-  design_id: number;
-  version_number: number;
-  name: string;
-  model: string;
-  components: string | DesignComponents;
-  materials: string | DesignMaterials;
-  change_summary: string;
-  created_at: string;
-}
-
-interface CountRow extends RowDataPacket {
-  total: number;
-}
-
-interface MaxVersionRow extends RowDataPacket {
-  maxVersion: number | null;
-}
 
 export class DesignRepository {
   async findPaginated(
@@ -48,25 +21,25 @@ export class DesignRepository {
     const limit = Math.min(50, Math.max(1, Number(options.limit) || 8));
     const offset = (page - 1) * limit;
 
-    let whereClause = "WHERE user_id = ?";
+    let whereClause = "WHERE user_id = $1";
     const whereParams: (string | number)[] = [userId];
 
     if (options.search && options.search.trim()) {
-      whereClause += " AND name LIKE ?";
       whereParams.push(`%${options.search.trim()}%`);
+      whereClause += ` AND name ILIKE $${whereParams.length}`;
     }
 
     if (options.model && options.model.trim()) {
-      whereClause += " AND model = ?";
       whereParams.push(options.model.trim());
+      whereClause += ` AND model = $${whereParams.length}`;
     }
 
     // 1. Get total count
-    const [countRows] = await pool.query<CountRow[]>(
+    const countResult = await pool.query<{ total: string | number }>(
       `SELECT COUNT(*) as total FROM designs ${whereClause}`,
       whereParams,
     );
-    const total = countRows[0]?.total || 0;
+    const total = Number(countResult.rows[0]?.total || 0);
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
     // 2. Sort order
@@ -82,18 +55,24 @@ export class DesignRepository {
     }
 
     // 3. Fetch paginated records
-    const [rows] = await pool.query<DesignRow[]>(
+    const fetchParams = [...whereParams];
+    fetchParams.push(limit);
+    const limitIdx = fetchParams.length;
+    fetchParams.push(offset);
+    const offsetIdx = fetchParams.length;
+
+    const result = await pool.query<DesignModelData>(
       `
       SELECT *
       FROM designs
       ${whereClause}
       ${orderBy}
-      LIMIT ? OFFSET ?
+      LIMIT $${limitIdx} OFFSET $${offsetIdx}
       `,
-      [...whereParams, limit, offset],
+      fetchParams,
     );
 
-    const designs = rows.map((row) => new DesignModel(row));
+    const designs = result.rows.map((row) => new DesignModel(row));
 
     return {
       designs,
@@ -109,22 +88,22 @@ export class DesignRepository {
   }
 
   async findById(id: number, userId: number): Promise<DesignModel | null> {
-    const [rows] = await pool.query<DesignRow[]>(
+    const result = await pool.query<DesignModelData>(
       `
       SELECT *
       FROM designs
-      WHERE id = ?
-      AND user_id = ?
+      WHERE id = $1
+      AND user_id = $2
       LIMIT 1
       `,
       [id, userId],
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return null;
     }
 
-    return new DesignModel(rows[0]);
+    return new DesignModel(result.rows[0]);
   }
 
   async create(
@@ -134,7 +113,7 @@ export class DesignRepository {
     components: DesignComponents,
     materials: DesignMaterials,
   ): Promise<DesignModel> {
-    const [result] = await pool.execute<ResultSetHeader>(
+    const result = await pool.query<DesignModelData>(
       `
       INSERT INTO designs
         (
@@ -145,7 +124,8 @@ export class DesignRepository {
           materials
         )
       VALUES
-        (?, ?, ?, ?, ?)
+        ($1, $2, $3, $4, $5)
+      RETURNING *
       `,
       [
         userId,
@@ -156,17 +136,21 @@ export class DesignRepository {
       ],
     );
 
-    const newDesignId = result.insertId;
+    const newDesign = result.rows[0];
+
+    if (!newDesign) {
+      throw new Error("Design was created but could not be retrieved.");
+    }
 
     // Snapshot version 1
-    await pool.execute(
+    await pool.query(
       `
       INSERT INTO design_versions
         (design_id, version_number, name, model, components, materials, change_summary)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
       [
-        newDesignId,
+        newDesign.id,
         1,
         name,
         model,
@@ -176,13 +160,7 @@ export class DesignRepository {
       ],
     );
 
-    const design = await this.findById(newDesignId, userId);
-
-    if (!design) {
-      throw new Error("Design was created but could not be retrieved.");
-    }
-
-    return design;
+    return new DesignModel(newDesign);
   }
 
   async update(
@@ -194,16 +172,18 @@ export class DesignRepository {
     materials: DesignMaterials,
     changeSummary?: string,
   ): Promise<DesignModel | null> {
-    await pool.execute(
+    const updateResult = await pool.query<DesignModelData>(
       `
       UPDATE designs
       SET
-        name = ?,
-        model = ?,
-        components = ?,
-        materials = ?
-      WHERE id = ?
-      AND user_id = ?
+        name = $1,
+        model = $2,
+        components = $3,
+        materials = $4,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $5
+      AND user_id = $6
+      RETURNING *
       `,
       [
         name,
@@ -215,19 +195,23 @@ export class DesignRepository {
       ],
     );
 
+    if (updateResult.rows.length === 0) {
+      return null;
+    }
+
     // Get current max version number for this design
-    const [maxRows] = await pool.query<MaxVersionRow[]>(
-      `SELECT MAX(version_number) as maxVersion FROM design_versions WHERE design_id = ?`,
+    const maxResult = await pool.query<{ maxversion: number | null }>(
+      `SELECT MAX(version_number) as maxversion FROM design_versions WHERE design_id = $1`,
       [id],
     );
-    const nextVersion = (maxRows[0]?.maxVersion || 0) + 1;
+    const nextVersion = Number(maxResult.rows[0]?.maxversion || 0) + 1;
 
     // Snapshot new version
-    await pool.execute(
+    await pool.query(
       `
       INSERT INTO design_versions
         (design_id, version_number, name, model, components, materials, change_summary)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
       [
         id,
@@ -240,20 +224,20 @@ export class DesignRepository {
       ],
     );
 
-    return this.findById(id, userId);
+    return new DesignModel(updateResult.rows[0]);
   }
 
   async delete(id: number, userId: number): Promise<boolean> {
-    const [result] = await pool.execute<ResultSetHeader>(
+    const result = await pool.query(
       `
       DELETE FROM designs
-      WHERE id = ?
-      AND user_id = ?
+      WHERE id = $1
+      AND user_id = $2
       `,
       [id, userId],
     );
 
-    return result.affectedRows > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getVersions(
@@ -266,17 +250,17 @@ export class DesignRepository {
       throw new Error("Design not found or access denied.");
     }
 
-    const [rows] = await pool.query<DesignVersionRow[]>(
+    const result = await pool.query<DesignVersionModelData>(
       `
       SELECT *
       FROM design_versions
-      WHERE design_id = ?
+      WHERE design_id = $1
       ORDER BY version_number DESC
       `,
       [designId],
     );
 
-    return rows.map((row) => new DesignVersionModel(row));
+    return result.rows.map((row) => new DesignVersionModel(row));
   }
 
   async restoreVersion(
@@ -291,21 +275,21 @@ export class DesignRepository {
     }
 
     // Find version
-    const [vRows] = await pool.query<DesignVersionRow[]>(
+    const vResult = await pool.query<DesignVersionModelData>(
       `
       SELECT *
       FROM design_versions
-      WHERE design_id = ? AND version_number = ?
+      WHERE design_id = $1 AND version_number = $2
       LIMIT 1
       `,
       [designId, versionNumber],
     );
 
-    if (vRows.length === 0) {
+    if (vResult.rows.length === 0) {
       throw new Error(`Version ${versionNumber} not found.`);
     }
 
-    const version = new DesignVersionModel(vRows[0]);
+    const version = new DesignVersionModel(vResult.rows[0]);
 
     // Update design with snapshot values
     const updated = await this.update(

@@ -5,52 +5,47 @@ export async function initDatabase(): Promise<void> {
     // 1. Users table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+        id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
-        email VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        UNIQUE KEY unique_user_email (email)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // 2. Designs table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS designs (
-        id INT(11) NOT NULL AUTO_INCREMENT,
-        user_id INT(10) UNSIGNED NOT NULL,
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
         name VARCHAR(255) NOT NULL,
         model VARCHAR(50) NOT NULL,
-        components LONGTEXT NOT NULL CHECK (json_valid(components)),
-        materials LONGTEXT NOT NULL CHECK (json_valid(materials)),
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY fk_designs_user (user_id),
-        CONSTRAINT fk_designs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        components JSONB NOT NULL DEFAULT '{}'::jsonb,
+        materials JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_designs_user_id ON designs(user_id);
     `);
 
     // 3. Design Versions table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS design_versions (
-        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        design_id INT NOT NULL,
+        id SERIAL PRIMARY KEY,
+        design_id INT NOT NULL REFERENCES designs (id) ON DELETE CASCADE,
         version_number INT NOT NULL,
         name VARCHAR(255) NOT NULL,
         model VARCHAR(50) NOT NULL,
-        components LONGTEXT NOT NULL CHECK (json_valid(components)),
-        materials LONGTEXT NOT NULL CHECK (json_valid(materials)),
+        components JSONB NOT NULL DEFAULT '{}'::jsonb,
+        materials JSONB NOT NULL DEFAULT '{}'::jsonb,
         change_summary VARCHAR(255) DEFAULT 'Design update',
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        KEY fk_design_versions_design (design_id),
-        CONSTRAINT fk_design_versions_design FOREIGN KEY (design_id) REFERENCES designs (id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_design_versions_design_id ON design_versions(design_id);
     `);
 
-    console.log("Database tables verified successfully.");
+    console.log("PostgreSQL / Supabase database tables verified successfully.");
   } catch (err) {
     console.error("Database initialization notice:", err);
   }
