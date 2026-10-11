@@ -47,7 +47,7 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function me(req: Request, res: Response): Promise<void> {
+export async function me(req: any, res: Response): Promise<void> {
   try {
     if (!req.user || !req.user.id) {
       res.status(401).json({

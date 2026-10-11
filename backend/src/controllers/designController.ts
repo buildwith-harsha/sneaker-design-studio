@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { DesignService } from "../services/designService.js";
 import type { DesignQueryOptions } from "../types/design.js";
 
@@ -9,7 +9,7 @@ export class DesignController {
     this.designService = new DesignService();
   }
 
-  async getAllDesigns(req: Request, res: Response): Promise<void> {
+  async getAllDesigns(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });
@@ -40,7 +40,7 @@ export class DesignController {
     }
   }
 
-  async getDesignById(req: Request, res: Response): Promise<void> {
+  async getDesignById(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });
@@ -67,7 +67,7 @@ export class DesignController {
     }
   }
 
-  async createDesign(req: Request, res: Response): Promise<void> {
+  async createDesign(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });
@@ -95,7 +95,7 @@ export class DesignController {
     }
   }
 
-  async updateDesign(req: Request, res: Response): Promise<void> {
+  async updateDesign(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });
@@ -126,7 +126,7 @@ export class DesignController {
     }
   }
 
-  async deleteDesign(req: Request, res: Response): Promise<void> {
+  async deleteDesign(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });
@@ -150,7 +150,7 @@ export class DesignController {
     }
   }
 
-  async getVersions(req: Request, res: Response): Promise<void> {
+  async getVersions(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });
@@ -180,7 +180,7 @@ export class DesignController {
     }
   }
 
-  async restoreVersion(req: Request, res: Response): Promise<void> {
+  async restoreVersion(req: any, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.id) {
         res.status(401).json({ success: false, message: "Unauthorized." });

@@ -41,7 +41,7 @@ export function authenticate(
 
     const payload = verifyToken(token);
 
-    req.user = {
+    (req as any).user = {
       id: payload.userId,
     };
 
