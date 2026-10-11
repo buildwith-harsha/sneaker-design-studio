@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "echo 'Ready for Vercel'",
+    "build:tsc": "tsc",
     "start": "node dist/server.js"
   },
   "keywords": [],

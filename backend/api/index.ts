@@ -12,6 +12,14 @@ export default async function handler(req: Request, res: Response) {
     } catch (err) {
       console.error("Failed to initialize database tables:", err);
     }
+  // If Vercel internal rewrite changed req.url to destination, restore the actual requested path
+  const originalPath =
+    (req.headers["x-forwarded-uri"] as string) ||
+    (req.headers["x-original-url"] as string) ||
+    req.url;
+
+  if (originalPath && req.url !== originalPath) {
+    req.url = originalPath;
   }
 
   return app(req, res);

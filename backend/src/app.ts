@@ -69,6 +69,15 @@ const generalApiLimiter = rateLimit({
 app.use("/api/auth", authRateLimiter, authRoutes);
 app.use("/api/designs", generalApiLimiter, designRoutes);
 
+// Health check and root status endpoint
+app.get(["/", "/api", "/api/health"], (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: "Sneaker Design Studio API is online and operational",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // 5. 404 handler for undefined endpoints
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
