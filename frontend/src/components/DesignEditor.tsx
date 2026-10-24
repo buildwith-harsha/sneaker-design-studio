@@ -10,7 +10,7 @@ import {
   restoreDesignVersion,
 } from "../api/designApi";
 import { getCachedDesign, cacheDesign } from "../utils/designStorage";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { materials, type SneakerMaterial } from "../data/materials";
 import {
   setComponentColor,
@@ -24,6 +24,9 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { sneakerModels, type SneakerModel } from "../data/sneakerModels";
 import type { DesignVersion } from "../store/DesignTypes";
+import ExportModal from "./export/ExportModal";
+import { parseAndValidateProjectJson } from "../export/projectExport";
+import { decodeDesignFromShareUrl } from "../export/shareLink";
 import "../assets/css/design-editor.css";
 
 export default function DesignEditor() {
@@ -33,6 +36,9 @@ export default function DesignEditor() {
   const [designName, setDesignName] = useState("My Sneaker Design");
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Version History Modal State
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -53,6 +59,56 @@ export default function DesignEditor() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   }, []);
+
+  // Handle incoming shared design links from hash (#share=...)
+  useEffect(() => {
+    const handleCheckShareLink = () => {
+      if (window.location.hash.includes("share=")) {
+        const shared = decodeDesignFromShareUrl(window.location.hash);
+        if (shared) {
+          setDesignName(shared.name);
+          dispatch(
+            loadDesign({
+              model: shared.model,
+              components: shared.components,
+              materials: shared.materials,
+            }),
+          );
+          showToast("✓ Shared sneaker design loaded!");
+        }
+      }
+    };
+    handleCheckShareLink();
+    window.addEventListener("hashchange", handleCheckShareLink);
+    return () => window.removeEventListener("hashchange", handleCheckShareLink);
+  }, [dispatch, showToast]);
+
+  // Handle re-import of exported .sneaker.json files
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const parsedResult = parseAndValidateProjectJson(content);
+      if (parsedResult.valid && parsedResult.design) {
+        setDesignName(parsedResult.design.name);
+        dispatch(
+          loadDesign({
+            model: parsedResult.design.model,
+            components: parsedResult.design.components,
+            materials: parsedResult.design.materials,
+          }),
+        );
+        showToast("✓ Sneaker design imported successfully!");
+      } else {
+        showToast(`⚠️ Import failed: ${parsedResult.error || "Invalid file"}`);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  };
 
   // Save Design handler
   const handleSave = async () => {
@@ -177,6 +233,23 @@ export default function DesignEditor() {
         </div>
 
         <div className="design-editor__header-right">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportFile}
+            accept=".json,application/json"
+            style={{ display: "none" }}
+          />
+
+          <button
+            type="button"
+            className="design-editor__import-btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Import sneaker design from JSON project file"
+          >
+            📂 Import JSON
+          </button>
+
           {id && (
             <button
               type="button"
@@ -194,6 +267,15 @@ export default function DesignEditor() {
             disabled={saving}
           >
             {saving ? "Saving..." : "Save Design"}
+          </button>
+
+          <button
+            type="button"
+            className="design-editor__export-btn"
+            onClick={() => setShowExportModal(true)}
+            title="Export design in PNG, JPG, SVG, PDF, GLB, Turntable, and more"
+          >
+            Export 👟
           </button>
         </div>
       </header>
@@ -405,6 +487,18 @@ export default function DesignEditor() {
           </button>
         </aside>
       </main>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        design={{
+          name: designName,
+          model,
+          components,
+          materials: componentMaterials,
+        }}
+      />
     </div>
   );
 }

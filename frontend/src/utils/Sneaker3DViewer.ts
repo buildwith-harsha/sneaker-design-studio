@@ -503,13 +503,10 @@ export class Sneaker3DViewer {
       metalness: number;
     },
   ): THREE.Material {
-    let material: THREE.Material | THREE.MeshStandardMaterial;
-
     /*
      * Clone original material.
      */
-
-    material = source.clone();
+    const material: THREE.Material = source.clone();
 
     /*
      * Most GLB sneaker materials

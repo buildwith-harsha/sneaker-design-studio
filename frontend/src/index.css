@@ -1,11 +1,40 @@
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-secondary: 'Anonymous Pro', monospace, monospace;
+  font-family: var(--font-primary);
   line-height: 1.5;
-  font-weight: 400;
+  font-weight: 500;
   color-scheme: light;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f8f8f8;
+  color: #000000;
+
+  /* 3sidedcube Design Tokens */
+  --cube-green: #00ed71;
+  --cube-lime: #a0ff1f;
+  --cube-pink: #f70087;
+  --cube-pink-alt: #f40256;
+  --cube-black: #000000;
+  --cube-white: #ffffff;
+  --cube-gray-100: #ffffff;
+  --cube-gray-200: #f8f8f8;
+  --cube-gray-300: #eaeaea;
+  --cube-gray-400: #dddddd;
+  --cube-gray-500: #c3c3c3;
+  --cube-gray-600: #5b5b5b;
+
+  /* Shadows (Neo-brutalist solid offsets) */
+  --cube-border-thick: 2.5px solid #000000;
+  --cube-border-thin: 1.5px solid #000000;
+  --cube-shadow-xs: 2px 2px 0px #000000;
+  --cube-shadow-sm: 4px 4px 0px #000000;
+  --cube-shadow-md: 6px 6px 0px #000000;
+  --cube-shadow-lg: 10px 10px 0px #000000;
+  --cube-shadow-green: 6px 6px 0px #00ed71;
+  --cube-shadow-pink: 6px 6px 0px #f70087;
+
+  /* Gradients */
+  --grad-green: linear-gradient(270deg, #a0ff1f, #00ed71);
+  --grad-pink: linear-gradient(270deg, #f70087, #f40256);
 }
 
 * {
@@ -15,8 +44,9 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f8f8f8;
+  color: #000000;
+  font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

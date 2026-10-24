@@ -17,7 +17,7 @@ const MODEL_OPTIONS = [
 ];
 
 export default function MyDesigns() {
-  const [designs, setDesigns] = useState<SavedDesign[]>([]);
+  const [designs, setDesigns] = useState<SavedDesign[]>(() => getCachedDesigns());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedModel, setSelectedModel] = useState("all");
@@ -62,12 +62,8 @@ export default function MyDesigns() {
 
   // Initial load showing cached designs if available, then fresh
   useEffect(() => {
-    const cached = getCachedDesigns();
-    if (cached.length > 0 && !search && selectedModel === "all") {
-      setDesigns(cached);
-    }
-    fetchDesigns(1);
-  }, [selectedModel, sortBy]);
+    void Promise.resolve().then(() => fetchDesigns(1));
+  }, [fetchDesigns]);
 
   // Debounced search trigger
   useEffect(() => {

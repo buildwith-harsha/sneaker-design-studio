@@ -29,6 +29,7 @@ function AppHeader() {
           aria-label="SNEAKER DESIGN STUDIO"
         >
           SNEAKER DESIGN STUDIO
+          <span className="app-header__brand-badge">STUDIO</span>
         </NavLink>
 
         {isAuthenticated && (
