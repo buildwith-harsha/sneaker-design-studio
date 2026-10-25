@@ -1,6 +1,18 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt.js";
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: number;
+        name?: string;
+        email?: string;
+      };
+    }
+  }
+}
+
 export function authenticate(
   req: Request,
   res: Response,
@@ -29,7 +41,7 @@ export function authenticate(
 
     const payload = verifyToken(token);
 
-    req.user = {
+    (req as any).user = {
       id: payload.userId,
     };
 

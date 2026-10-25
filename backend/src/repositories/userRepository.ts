@@ -1,41 +1,31 @@
-import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import pool from "../config/database.js";
-import { UserModel } from "../models/userModel.js";
-
-export interface UserRow extends RowDataPacket {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  created_at: string;
-  updated_at: string;
-}
+import { UserModel, type UserModelData } from "../models/userModel.js";
 
 export class UserRepository {
   async findById(id: number): Promise<UserModel | null> {
-    const [rows] = await pool.query<UserRow[]>(
-      `SELECT * FROM users WHERE id = ? LIMIT 1`,
+    const result = await pool.query<UserModelData>(
+      `SELECT * FROM users WHERE id = $1 LIMIT 1`,
       [id],
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return null;
     }
 
-    return new UserModel(rows[0]);
+    return new UserModel(result.rows[0]);
   }
 
   async findByEmail(email: string): Promise<UserModel | null> {
-    const [rows] = await pool.query<UserRow[]>(
-      `SELECT * FROM users WHERE email = ? LIMIT 1`,
+    const result = await pool.query<UserModelData>(
+      `SELECT * FROM users WHERE email = $1 LIMIT 1`,
       [email],
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return null;
     }
 
-    return new UserModel(rows[0]);
+    return new UserModel(result.rows[0]);
   }
 
   async create(
@@ -43,17 +33,17 @@ export class UserRepository {
     email: string,
     password: string,
   ): Promise<UserModel> {
-    const [result] = await pool.execute<ResultSetHeader>(
-      `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
+    const result = await pool.query<UserModelData>(
+      `INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`,
       [name, email, password],
     );
 
-    const user = await this.findById(result.insertId);
+    const user = result.rows[0];
 
     if (!user) {
       throw new Error("User was created but could not be retrieved.");
     }
 
-    return user;
+    return new UserModel(user);
   }
 }
