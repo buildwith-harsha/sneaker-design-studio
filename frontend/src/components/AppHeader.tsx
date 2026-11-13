@@ -28,7 +28,7 @@ function AppHeader() {
           className="app-header__brand"
           aria-label="SNEAKER DESIGN STUDIO"
         >
-          SNEAKER DESIGN STUDIO
+          SNEAKER DESIGN
           <span className="app-header__brand-badge">STUDIO</span>
         </NavLink>
 
